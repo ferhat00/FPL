@@ -1,0 +1,24 @@
+Optimal formation: 5-3-2
+Starting XI projected points (next 6 GW): 651.1
+Captain: B.Traore (+108.9 extra)
+Total objective: 760.0
+Spend: £81.6m | Bank: £18.4m
+
+Starting XI:
+  - Vitor Reis (MCI DEF £5.0m) — proj 108.0
+  - Casey (WHU DEF £4.0m) — proj 107.1
+  - Gudmundsson (LEE DEF £4.0m) — proj 53.6
+  - Rodon (LEE DEF £4.0m) — proj 41.6
+  - Gabriel (ARS DEF £6.0m) — proj 29.8
+  - Lankshear (TOT FWD £4.5m) — proj 32.9
+  - Haaland (MCI FWD £14.0m) — proj 27.0
+  - Raya (ARS GKP £5.5m) — proj 29.8
+  - B.Traore (WOL MID £5.0m) — proj 108.9 (C)
+  - Gyabi (LEE MID £4.5m) — proj 76.5
+  - Trevitt (BRE MID £4.5m) — proj 36.0
+
+Bench:
+  - Wood (NFO FWD £7.6m) — proj 14.5
+  - Gunn (NFO GKP £4.0m) — proj 6.0
+  - Kuol (NEW MID £4.5m) — proj 3.0
+  - Seung soo (NEW MID £4.5m) — proj 3.0

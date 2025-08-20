@@ -1,0 +1,16 @@
+player_id,name,pos,team,price,proj_per_match,proj_6gw,start,captain,src
+649,B.Traore,MID,WOL,5.0,18.15,108.89999999999999,True,True,blend_p90
+412,Vitor Reis,DEF,MCI,5.0,18.0,108.0,True,False,blend_p90
+611,Casey,DEF,WHU,4.0,17.85,107.10000000000001,True,False,blend_p90
+361,Gyabi,MID,LEE,4.5,12.75,76.5,True,False,blend_p90
+347,Gudmundsson,DEF,LEE,4.0,8.925,53.550000000000004,True,False,blend_p90
+348,Rodon,DEF,LEE,4.0,6.941666666666666,41.65,True,False,blend_p90
+134,Trevitt,MID,BRE,4.5,6.0,36.0,True,False,blend_p90
+598,Lankshear,FWD,TOT,4.5,5.49,32.94,True,False,blend_p90
+1,Raya,GKP,ARS,5.5,4.958333333333334,29.750000000000004,True,False,ep_next
+5,Gabriel,DEF,ARS,6.0,4.958333333333334,29.750000000000004,True,False,ep_next
+430,Haaland,FWD,MCI,14.0,4.5,27.0,True,False,ep_next
+525,Wood,FWD,NFO,7.6,2.4099999999999997,14.459999999999997,False,False,ep_next
+675,Gunn,GKP,NFO,4.0,1.0041666666666667,6.025,False,False,ep_next
+496,Kuol,MID,NEW,4.5,0.5,3.0,False,False,ep_next
+689,Seung soo,MID,NEW,4.5,0.5,3.0,False,False,ep_next
