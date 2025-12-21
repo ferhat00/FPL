@@ -1,0 +1,36 @@
+============================================================
+OPTIMAL SQUAD - ML ENHANCED
+============================================================
+Formation: 5-3-2
+Captain: Masuaku (proj: 0.0 pts)
+
+FINANCIAL:
+  Spent: £75.9m
+  Bank: £26.1m
+
+PROJECTIONS (6 GW):
+  Total Expected: -0.1 pts
+  Risk (StDev): 0.1 pts
+  Avg Ownership: 0.4%
+
+STARTING XI:
+  Tuanzebe (BUR DEF £4.0m) - 0.0 pts
+  Masuaku (C) (SUN DEF £4.0m) - 0.0 pts
+  Humphreys (BUR DEF £4.0m) - 0.0 pts
+  Onana (MUN GKP £5.0m) - 0.0 pts
+  Nørgaard (ARS MID £5.4m) - 0.0 pts
+  Broja (BUR FWD £5.4m) - 0.0 pts
+  Igor (BHA DEF £4.5m) - 0.0 pts
+  Watson (BHA MID £5.0m) - 0.0 pts
+  Kamada (CRY MID £5.0m) - 0.0 pts
+  Mykolenko (EVE DEF £4.9m) - 0.0 pts
+  Wheatley (MUN FWD £4.5m) - 0.0 pts
+
+BENCH:
+  Georginio (BHA MID £5.9m) - 37.3 pts
+  Kelleher (BRE GKP £4.5m) - 36.4 pts
+  Ødegaard (ARS MID £7.9m) - 33.6 pts
+  Zirkzee (MUN FWD £5.9m) - 0.0 pts
+
+OPTIMIZATION STATUS: Optimal
+============================================================
