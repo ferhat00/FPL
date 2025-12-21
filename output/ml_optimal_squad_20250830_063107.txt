@@ -1,0 +1,36 @@
+============================================================
+OPTIMAL SQUAD - ML ENHANCED
+============================================================
+Formation: 4-5-1
+Captain: O.Dango (proj: 82.4 pts)
+
+FINANCIAL:
+  Spent: £78.8m
+  Bank: £21.2m
+
+PROJECTIONS (6 GW):
+  Total Expected: 398.0 pts
+  Risk (StDev): 5.3 pts
+  Avg Ownership: 5.8%
+
+STARTING XI:
+  O.Dango (C) (BRE MID £6.0m) - 82.4 pts
+  Aït-Nouri (MCI DEF £6.0m) - 59.7 pts
+  Schär (NEW DEF £5.5m) - 53.3 pts
+  Dúbravka (BUR GKP £4.0m) - 48.7 pts
+  Gravenberch (LIV MID £5.5m) - 43.2 pts
+  White (ARS DEF £5.5m) - 38.7 pts
+  Georginio (BHA MID £5.9m) - 37.3 pts
+  Onana (AVL MID £5.0m) - 36.0 pts
+  Wilson (FUL MID £5.5m) - 36.0 pts
+  Bogle (LEE DEF £4.5m) - 30.0 pts
+  Strand Larsen (WOL FWD £6.5m) - 23.7 pts
+
+BENCH:
+  Kelleher (BRE GKP £4.5m) - 36.4 pts
+  Marc Guiu (SUN FWD £4.5m) - 6.3 pts
+  Zirkzee (MUN FWD £5.9m) - 0.0 pts
+  Humphreys (BUR DEF £4.0m) - 0.0 pts
+
+OPTIMIZATION STATUS: Optimal
+============================================================

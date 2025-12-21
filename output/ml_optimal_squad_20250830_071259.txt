@@ -1,0 +1,36 @@
+============================================================
+OPTIMAL SQUAD - ML ENHANCED
+============================================================
+Formation: 3-5-2
+Captain: Gomez (proj: 6.3 pts)
+
+FINANCIAL:
+  Spent: £85.1m
+  Bank: £34.9m
+
+PROJECTIONS (6 GW):
+  Total Expected: -3.9 pts
+  Risk (StDev): 3.6 pts
+  Avg Ownership: 2.1%
+
+STARTING XI:
+  Martinez (AVL GKP £5.0m) - 13.0 pts
+  Foden (MCI MID £8.0m) - 7.0 pts
+  Rodrigo (MCI MID £6.4m) - 6.8 pts
+  Trossard (ARS MID £6.9m) - 6.3 pts
+  Gomez (C) (LIV DEF £5.0m) - 6.3 pts
+  Solanke (TOT FWD £7.3m) - 6.3 pts
+  Kluivert (BOU MID £7.0m) - 6.0 pts
+  Christie (BOU MID £5.0m) - 6.0 pts
+  Robinson (FUL DEF £5.0m) - 6.0 pts
+  Marc Guiu (SUN FWD £4.5m) - 6.0 pts
+  Seelt (SUN DEF £4.0m) - 6.0 pts
+
+BENCH:
+  White (ARS DEF £5.5m) - 39.1 pts
+  Kelleher (BRE GKP £4.5m) - 18.0 pts
+  Strand Larsen (WOL FWD £6.5m) - 12.0 pts
+  Fofana (CHE DEF £4.5m) - 6.3 pts
+
+OPTIMIZATION STATUS: Optimal
+============================================================
