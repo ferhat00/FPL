@@ -166,3 +166,4 @@ cython_debug/
 /fpl/Scripts
 *.cfg
 nul
+*.txt
