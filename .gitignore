@@ -167,3 +167,12 @@ cython_debug/
 *.cfg
 nul
 *.txt
+
+# --- World Cup 2026 pipeline ---
+config.yaml
+worldcup2026/data/raw/
+worldcup2026/data/processed/
+worldcup2026/data/models/
+worldcup2026/data/cache/
+.streamlit/secrets.toml
+!worldcup2026/data/tournament_2026.yaml

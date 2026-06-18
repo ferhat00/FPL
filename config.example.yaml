@@ -1,0 +1,48 @@
+# =============================================================================
+# World Cup 2026 prediction pipeline — configuration
+# Copy this file to `config.yaml` and fill in your keys. config.yaml is gitignored.
+# =============================================================================
+
+# --- Kaggle API (historical results + Elo datasets) -------------------------
+# Get credentials from https://www.kaggle.com/settings -> "Create New Token".
+# Either fill these in OR place kaggle.json at ~/.kaggle/kaggle.json.
+kaggle:
+  username: ""
+  key: ""
+  results_dataset: "martj42/international-football-results-from-1872-to-2017"
+  elo_dataset: "saifalnimri/international-football-elo-ratings"
+
+# --- Data sources (toggle individual scrapers) ------------------------------
+sources:
+  use_kaggle: true            # primary source for historical results + Elo
+  scrape_eloratings: true     # fallback / top-up from eloratings.net
+  scrape_transfermarkt: true  # squad market values (brittle; degrades to Elo proxy)
+  fetch_worldbank: true       # GDP per capita + population
+  fetch_live_results: true    # in-tournament WC-2026 results feed
+  offline_fallback: true      # if a source fails, synthesise from bundled snapshot (logged)
+
+# --- Modelling --------------------------------------------------------------
+model:
+  algorithm: "random_forest"  # random_forest | extra_trees
+  n_estimators: 500
+  max_depth: null
+  min_samples_leaf: 5
+  random_state: 42
+  time_decay_half_life_days: 1095   # Dixon-Coles decay (≈3 years)
+  history_start_year: 2002          # earliest matches used for training
+  rolling_window: 10                # matches in rolling-form features
+
+# --- Simulation -------------------------------------------------------------
+simulation:
+  n_simulations: 50000
+  bivariate_poisson_corr: 0.10      # Karlis-Ntzoufras correlation term
+  knockout_draw_extra_time_edge: 0.5  # P(stronger side wins) bump in ET/pens
+  random_state: 42
+
+# --- Paths (relative to repo root unless absolute) --------------------------
+paths:
+  raw: "worldcup2026/data/raw"
+  processed: "worldcup2026/data/processed"
+  models: "worldcup2026/data/models"
+  cache: "worldcup2026/data/cache"
+  output: "output"

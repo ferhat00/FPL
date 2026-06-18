@@ -1,0 +1,150 @@
+# =============================================================================
+# 2026 FIFA World Cup — tournament definition
+# =============================================================================
+# Source of group draw: official Final Draw, 5 Dec 2025, Washington D.C.
+# (cross-checked against en.wikipedia.org/wiki/2026_FIFA_World_Cup_draw).
+#
+# VERIFY FLAGS:
+#   * Slots marked `playoff: true` were decided by the March-2026 play-offs
+#     (UEFA paths + intercontinental). Confirm the winning nation is correct.
+#   * The `bracket` section encodes a VALID default knockout map (structure is
+#     deterministic FIFA rules: 8 best thirds + fixed progression). The exact
+#     winner-vs-third pairings should be checked against FIFA's published
+#     bracket; editing this YAML re-wires the whole simulation.
+#
+# The `teams` block holds an APPROXIMATE offline snapshot of strength/value
+# attributes used ONLY when live ETL (Kaggle/eloratings.net/Transfermarkt) is
+# unavailable. Live ETL always overrides these values.
+# =============================================================================
+
+meta:
+  name: "2026 FIFA World Cup"
+  hosts: ["United States", "Canada", "Mexico"]
+  n_teams: 48
+  n_groups: 12
+  opening_match_date: "2026-06-11"
+  group_stage_end: "2026-06-27"
+  round_of_32: ["2026-06-28", "2026-07-03"]
+  round_of_16: ["2026-07-04", "2026-07-07"]
+  quarter_finals: ["2026-07-09", "2026-07-11"]
+  semi_finals: ["2026-07-14", "2026-07-15"]
+  third_place: "2026-07-18"
+  final_date: "2026-07-19"
+  final_venue: "MetLife Stadium, East Rutherford, NJ"
+
+# --- Group allocations (draw order = seeding pot order) ----------------------
+groups:
+  A: ["Mexico", "South Africa", "South Korea", "Czech Republic"]
+  B: ["Canada", "Bosnia and Herzegovina", "Qatar", "Switzerland"]
+  C: ["Brazil", "Morocco", "Haiti", "Scotland"]
+  D: ["United States", "Paraguay", "Australia", "Turkey"]
+  E: ["Germany", "Curacao", "Ivory Coast", "Ecuador"]
+  F: ["Netherlands", "Japan", "Sweden", "Tunisia"]
+  G: ["Belgium", "Egypt", "Iran", "New Zealand"]
+  H: ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"]
+  I: ["France", "Senegal", "Iraq", "Norway"]
+  J: ["Argentina", "Algeria", "Austria", "Jordan"]
+  K: ["Portugal", "DR Congo", "Uzbekistan", "Colombia"]
+  L: ["England", "Croatia", "Ghana", "Panama"]
+
+# Slots whose occupant was decided by a March-2026 play-off (verify identity).
+playoff_slots: ["Czech Republic", "Bosnia and Herzegovina", "Turkey",
+                "Sweden", "Iraq", "DR Congo"]
+
+# --- Per-team attributes (APPROXIMATE offline snapshot; ETL overrides) --------
+# elo: World Football Elo scale.  fifa_rank: FIFA/Coca-Cola ranking.
+# market_value_m: squad total market value (EUR millions, Transfermarkt-style).
+# squad_age: mean squad age (years).  host: tournament co-host.
+teams:
+  Mexico:          {confederation: CONCACAF, host: true,  elo: 1800, fifa_rank: 17, market_value_m: 230, squad_age: 27.0}
+  South Africa:    {confederation: CAF,      host: false, elo: 1730, fifa_rank: 58, market_value_m: 70,  squad_age: 26.0}
+  South Korea:     {confederation: AFC,      host: false, elo: 1790, fifa_rank: 23, market_value_m: 180, squad_age: 27.0}
+  Czech Republic:  {confederation: UEFA,     host: false, elo: 1810, fifa_rank: 42, market_value_m: 260, squad_age: 27.0}
+  Canada:          {confederation: CONCACAF, host: true,  elo: 1800, fifa_rank: 30, market_value_m: 160, squad_age: 27.0}
+  Bosnia and Herzegovina: {confederation: UEFA, host: false, elo: 1760, fifa_rank: 67, market_value_m: 180, squad_age: 27.0}
+  Qatar:           {confederation: AFC,      host: false, elo: 1680, fifa_rank: 51, market_value_m: 60,  squad_age: 27.0}
+  Switzerland:     {confederation: UEFA,     host: false, elo: 1860, fifa_rank: 19, market_value_m: 320, squad_age: 28.0}
+  Brazil:          {confederation: CONMEBOL, host: false, elo: 2010, fifa_rank: 5,  market_value_m: 900, squad_age: 27.0}
+  Morocco:         {confederation: CAF,      host: false, elo: 1860, fifa_rank: 12, market_value_m: 400, squad_age: 26.0}
+  Haiti:           {confederation: CONCACAF, host: false, elo: 1600, fifa_rank: 83, market_value_m: 40,  squad_age: 26.0}
+  Scotland:        {confederation: UEFA,     host: false, elo: 1800, fifa_rank: 41, market_value_m: 250, squad_age: 27.0}
+  United States:   {confederation: CONCACAF, host: true,  elo: 1810, fifa_rank: 16, market_value_m: 320, squad_age: 26.0}
+  Paraguay:        {confederation: CONMEBOL, host: false, elo: 1760, fifa_rank: 39, market_value_m: 120, squad_age: 27.0}
+  Australia:       {confederation: AFC,      host: false, elo: 1750, fifa_rank: 26, market_value_m: 110, squad_age: 27.0}
+  Turkey:          {confederation: UEFA,     host: false, elo: 1820, fifa_rank: 27, market_value_m: 420, squad_age: 26.0}
+  Germany:         {confederation: UEFA,     host: false, elo: 1960, fifa_rank: 9,  market_value_m: 900, squad_age: 26.0}
+  Curacao:         {confederation: CONCACAF, host: false, elo: 1600, fifa_rank: 90, market_value_m: 45,  squad_age: 27.0}
+  Ivory Coast:     {confederation: CAF,      host: false, elo: 1800, fifa_rank: 40, market_value_m: 280, squad_age: 26.0}
+  Ecuador:         {confederation: CONMEBOL, host: false, elo: 1840, fifa_rank: 24, market_value_m: 300, squad_age: 25.0}
+  Netherlands:     {confederation: UEFA,     host: false, elo: 2000, fifa_rank: 7,  market_value_m: 800, squad_age: 27.0}
+  Japan:           {confederation: AFC,      host: false, elo: 1840, fifa_rank: 18, market_value_m: 290, squad_age: 27.0}
+  Sweden:          {confederation: UEFA,     host: false, elo: 1800, fifa_rank: 35, market_value_m: 320, squad_age: 26.0}
+  Tunisia:         {confederation: CAF,      host: false, elo: 1730, fifa_rank: 49, market_value_m: 70,  squad_age: 27.0}
+  Belgium:         {confederation: UEFA,     host: false, elo: 1930, fifa_rank: 8,  market_value_m: 600, squad_age: 27.0}
+  Egypt:           {confederation: CAF,      host: false, elo: 1770, fifa_rank: 34, market_value_m: 160, squad_age: 27.0}
+  Iran:            {confederation: AFC,      host: false, elo: 1780, fifa_rank: 21, market_value_m: 100, squad_age: 28.0}
+  New Zealand:     {confederation: OFC,      host: false, elo: 1600, fifa_rank: 86, market_value_m: 40,  squad_age: 27.0}
+  Spain:           {confederation: UEFA,     host: false, elo: 2120, fifa_rank: 2,  market_value_m: 1100, squad_age: 26.0}
+  Cape Verde:      {confederation: CAF,      host: false, elo: 1700, fifa_rank: 70, market_value_m: 90,  squad_age: 27.0}
+  Saudi Arabia:    {confederation: AFC,      host: false, elo: 1670, fifa_rank: 59, market_value_m: 60,  squad_age: 27.0}
+  Uruguay:         {confederation: CONMEBOL, host: false, elo: 1900, fifa_rank: 15, market_value_m: 500, squad_age: 26.0}
+  France:          {confederation: UEFA,     host: false, elo: 2080, fifa_rank: 3,  market_value_m: 1300, squad_age: 25.0}
+  Senegal:         {confederation: CAF,      host: false, elo: 1850, fifa_rank: 20, market_value_m: 400, squad_age: 26.0}
+  Iraq:            {confederation: AFC,      host: false, elo: 1650, fifa_rank: 57, market_value_m: 40,  squad_age: 26.0}
+  Norway:          {confederation: UEFA,     host: false, elo: 1820, fifa_rank: 28, market_value_m: 500, squad_age: 26.0}
+  Argentina:       {confederation: CONMEBOL, host: false, elo: 2100, fifa_rank: 1,  market_value_m: 700, squad_age: 28.0}
+  Algeria:         {confederation: CAF,      host: false, elo: 1790, fifa_rank: 36, market_value_m: 230, squad_age: 27.0}
+  Austria:         {confederation: UEFA,     host: false, elo: 1820, fifa_rank: 22, market_value_m: 380, squad_age: 27.0}
+  Jordan:          {confederation: AFC,      host: false, elo: 1640, fifa_rank: 62, market_value_m: 30,  squad_age: 27.0}
+  Portugal:        {confederation: UEFA,     host: false, elo: 2000, fifa_rank: 6,  market_value_m: 1000, squad_age: 27.0}
+  DR Congo:        {confederation: CAF,      host: false, elo: 1740, fifa_rank: 56, market_value_m: 220, squad_age: 26.0}
+  Uzbekistan:      {confederation: AFC,      host: false, elo: 1700, fifa_rank: 54, market_value_m: 70,  squad_age: 26.0}
+  Colombia:        {confederation: CONMEBOL, host: false, elo: 1920, fifa_rank: 14, market_value_m: 450, squad_age: 27.0}
+  England:         {confederation: UEFA,     host: false, elo: 2010, fifa_rank: 4,  market_value_m: 1400, squad_age: 26.0}
+  Croatia:         {confederation: UEFA,     host: false, elo: 1900, fifa_rank: 10, market_value_m: 400, squad_age: 28.0}
+  Ghana:           {confederation: CAF,      host: false, elo: 1720, fifa_rank: 73, market_value_m: 200, squad_age: 25.0}
+  Panama:          {confederation: CONCACAF, host: false, elo: 1680, fifa_rank: 31, market_value_m: 60,  squad_age: 27.0}
+
+# --- Knockout bracket (data-driven; see VERIFY note at top) ------------------
+# Slot tokens:  "1X"=winner of group X, "2X"=runner-up of group X,
+#               "T1".."T8"=ranked best-third placed teams (1=best),
+#               "W:<match_id>"=winner of an earlier match.
+# Structure: 8x (winner vs third) + 4x (winner vs runner-up) + 4x (runner-up vs
+# runner-up) = 16 R32 ties, then standard single elimination.
+bracket:
+  round_of_32:
+    - {id: R32_01, top: "1A", bottom: "T1"}
+    - {id: R32_02, top: "1B", bottom: "T2"}
+    - {id: R32_03, top: "1C", bottom: "T3"}
+    - {id: R32_04, top: "1D", bottom: "T4"}
+    - {id: R32_05, top: "1E", bottom: "T5"}
+    - {id: R32_06, top: "1F", bottom: "T6"}
+    - {id: R32_07, top: "1G", bottom: "T7"}
+    - {id: R32_08, top: "1H", bottom: "T8"}
+    - {id: R32_09, top: "1I", bottom: "2A"}
+    - {id: R32_10, top: "1J", bottom: "2B"}
+    - {id: R32_11, top: "1K", bottom: "2C"}
+    - {id: R32_12, top: "1L", bottom: "2D"}
+    - {id: R32_13, top: "2E", bottom: "2F"}
+    - {id: R32_14, top: "2G", bottom: "2H"}
+    - {id: R32_15, top: "2I", bottom: "2J"}
+    - {id: R32_16, top: "2K", bottom: "2L"}
+  round_of_16:
+    - {id: R16_1, top: "W:R32_01", bottom: "W:R32_02"}
+    - {id: R16_2, top: "W:R32_03", bottom: "W:R32_04"}
+    - {id: R16_3, top: "W:R32_05", bottom: "W:R32_06"}
+    - {id: R16_4, top: "W:R32_07", bottom: "W:R32_08"}
+    - {id: R16_5, top: "W:R32_09", bottom: "W:R32_10"}
+    - {id: R16_6, top: "W:R32_11", bottom: "W:R32_12"}
+    - {id: R16_7, top: "W:R32_13", bottom: "W:R32_14"}
+    - {id: R16_8, top: "W:R32_15", bottom: "W:R32_16"}
+  quarter_finals:
+    - {id: QF_1, top: "W:R16_1", bottom: "W:R16_2"}
+    - {id: QF_2, top: "W:R16_3", bottom: "W:R16_4"}
+    - {id: QF_3, top: "W:R16_5", bottom: "W:R16_6"}
+    - {id: QF_4, top: "W:R16_7", bottom: "W:R16_8"}
+  semi_finals:
+    - {id: SF_1, top: "W:QF_1", bottom: "W:QF_2"}
+    - {id: SF_2, top: "W:QF_3", bottom: "W:QF_4"}
+  final:
+    - {id: FINAL, top: "W:SF_1", bottom: "W:SF_2"}
