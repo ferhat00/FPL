@@ -51,8 +51,11 @@ def run_etl(refresh: bool = False) -> Dict[str, Any]:
 
     # fetch_results() is a FULL historical pull every time, so we always replace
     # the historical table and only union in the (incremental) live WC-2026 rows.
+    # Live results are derived FROM the historical pull (World Cup games on/after
+    # the 2026 opener), so the union below is a no-op after de-dup unless the
+    # manual override CSV adds fixtures Kaggle has not yet ingested.
     results = sources.fetch_results()
-    live = sources.fetch_live_results()
+    live = sources.fetch_live_results(results)
     results = pd.concat([results, live], ignore_index=True)
 
     # de-duplicate on (date, home, away)

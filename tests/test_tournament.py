@@ -54,3 +54,28 @@ def test_each_group_winner_and_third_token_used_once():
     # 12 winners, 12 runners-up, 8 thirds = 32 distinct slot tokens
     assert len(firsts) == 32
     assert len(set(firsts)) == 32
+
+
+def test_third_slots_have_valid_eligible_groups():
+    bk = T.bracket()
+    grp_letters = set(T.groups())
+    third_ties = [m for m in bk["round_of_32"]
+                  if any(s.startswith("T") for s in (m["top"], m["bottom"]))]
+    assert len(third_ties) == 8
+    for m in third_ties:
+        elig = m.get("eligible_groups", [])
+        assert len(elig) >= 1                      # non-empty
+        assert all(g in grp_letters for g in elig)  # real group letters
+
+
+def test_winner_references_point_to_defined_earlier_match():
+    """Every 'W:<id>' must reference a match id defined in an earlier round
+    (guards the non-sequential official R16+ links against typos)."""
+    bk = T.bracket()
+    defined = set()
+    for rnd in ["round_of_32", "round_of_16", "quarter_finals", "semi_finals", "final"]:
+        for m in bk[rnd]:
+            for slot in (m["top"], m["bottom"]):
+                if slot.startswith("W:"):
+                    assert slot[2:] in defined, f"{slot} not defined before {m['id']}"
+            defined.add(m["id"])

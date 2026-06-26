@@ -19,6 +19,9 @@ sources:
   scrape_transfermarkt: true  # squad market values (brittle; degrades to Elo proxy)
   fetch_worldbank: true       # GDP per capita + population
   fetch_live_results: true    # in-tournament WC-2026 results feed
+  live_results_provider: "fifa"  # fifa | none — official keyless match API (real-time)
+  fifa_competition_id: "17"      # men's FIFA World Cup (FIFA api.fifa.com)
+  fifa_season_id: "285023"       # 2026 edition season id
   offline_fallback: true      # if a source fails, synthesise from bundled snapshot (logged)
 
 # --- Modelling --------------------------------------------------------------

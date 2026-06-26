@@ -24,14 +24,29 @@ def test_select_best_thirds_takes_top_n():
     assert stats[best[0]][0] >= stats[best[-1]][0]
 
 
-def test_assign_thirds_avoids_same_group():
+def test_assign_thirds_respects_eligibility():
     third_slots = ["T1", "T2"]
-    slot_groups = {"T1": "A", "T2": "B"}      # T1 faces winner of A, T2 winner of B
+    slot_eligible = {"T1": ["C"], "T2": ["A", "C"]}  # T1 accepts only group-C thirds
     thirds_ranked = ["x", "y"]
-    team_group = {"x": "A", "y": "C"}          # x is from group A -> clashes with T1
-    assign = bk.assign_thirds(third_slots, thirds_ranked, slot_groups, team_group)
-    assert assign["T1"] != "x"                 # swapped to avoid A-vs-A
-    assert set(assign.values()) == {"x", "y"}  # same teams, reordered
+    team_group = {"x": "A", "y": "C"}                 # x=A is ineligible for T1
+    assign = bk.assign_thirds(third_slots, thirds_ranked, slot_eligible, team_group)
+    assert assign["T1"] == "y"                        # only eligible group-C third
+    assert assign["T2"] == "x"
+    assert set(assign.values()) == {"x", "y"}         # bijection preserved
+
+
+def test_assign_thirds_official_lists_are_feasible_for_all_combinations():
+    """Every C(12,8)=495 set of qualifying third-place groups must yield a
+    perfect, eligibility-respecting assignment (no fallback)."""
+    from itertools import combinations
+    slots, elig = bk.third_slot_metadata(T.bracket())
+    groups = sorted(T.groups())
+    for combo in combinations(groups, 8):
+        # one third per qualifying group; rank order is arbitrary here
+        thirds = [f"3{g}" for g in combo]
+        team_group = {f"3{g}": g for g in combo}
+        cand = {s: [t for t in thirds if team_group[t] in elig[s]] for s in slots}
+        assert bk._match_thirds(slots, cand) is not None, f"infeasible combo {combo}"
 
 
 def test_resolve_tournament_produces_single_champion():

@@ -7,10 +7,11 @@
 # VERIFY FLAGS:
 #   * Slots marked `playoff: true` were decided by the March-2026 play-offs
 #     (UEFA paths + intercontinental). Confirm the winning nation is correct.
-#   * The `bracket` section encodes a VALID default knockout map (structure is
-#     deterministic FIFA rules: 8 best thirds + fixed progression). The exact
-#     winner-vs-third pairings should be checked against FIFA's published
-#     bracket; editing this YAML re-wires the whole simulation.
+#   * The `bracket` section encodes the OFFICIAL FIFA 2026 knockout map (match
+#     numbers 73-104), cross-verified against the published bracket. Each
+#     winner-vs-third tie carries the official `eligible_groups` list (FIFA
+#     Annex C) restricting which group's third-placed team may fill that slot.
+#     Editing this YAML re-wires the whole simulation.
 #
 # The `teams` block holds an APPROXIMATE offline snapshot of strength/value
 # attributes used ONLY when live ETL (Kaggle/eloratings.net/Transfermarkt) is
@@ -105,46 +106,50 @@ teams:
   Ghana:           {confederation: CAF,      host: false, elo: 1720, fifa_rank: 73, market_value_m: 200, squad_age: 25.0}
   Panama:          {confederation: CONCACAF, host: false, elo: 1680, fifa_rank: 31, market_value_m: 60,  squad_age: 27.0}
 
-# --- Knockout bracket (data-driven; see VERIFY note at top) ------------------
+# --- Knockout bracket (OFFICIAL FIFA 2026; see VERIFY note at top) ------------
 # Slot tokens:  "1X"=winner of group X, "2X"=runner-up of group X,
 #               "T1".."T8"=ranked best-third placed teams (1=best),
 #               "W:<match_id>"=winner of an earlier match.
-# Structure: 8x (winner vs third) + 4x (winner vs runner-up) + 4x (runner-up vs
-# runner-up) = 16 R32 ties, then standard single elimination.
+# `id` values are the official FIFA match numbers (M73-M104). `eligible_groups`
+# (present on winner-vs-third ties only) restricts which group's third-placed
+# team may occupy that slot — the constrained assignment is solved at run time
+# (worldcup2026/model/bracket.py::assign_thirds). Third tokens map to FIFA slots
+# in match-number order: M74->T1, M77->T2, M79->T3, M80->T4, M81->T5, M82->T6,
+# M85->T7, M87->T8.
 bracket:
-  round_of_32:
-    - {id: R32_01, top: "1A", bottom: "T1"}
-    - {id: R32_02, top: "1B", bottom: "T2"}
-    - {id: R32_03, top: "1C", bottom: "T3"}
-    - {id: R32_04, top: "1D", bottom: "T4"}
-    - {id: R32_05, top: "1E", bottom: "T5"}
-    - {id: R32_06, top: "1F", bottom: "T6"}
-    - {id: R32_07, top: "1G", bottom: "T7"}
-    - {id: R32_08, top: "1H", bottom: "T8"}
-    - {id: R32_09, top: "1I", bottom: "2A"}
-    - {id: R32_10, top: "1J", bottom: "2B"}
-    - {id: R32_11, top: "1K", bottom: "2C"}
-    - {id: R32_12, top: "1L", bottom: "2D"}
-    - {id: R32_13, top: "2E", bottom: "2F"}
-    - {id: R32_14, top: "2G", bottom: "2H"}
-    - {id: R32_15, top: "2I", bottom: "2J"}
-    - {id: R32_16, top: "2K", bottom: "2L"}
-  round_of_16:
-    - {id: R16_1, top: "W:R32_01", bottom: "W:R32_02"}
-    - {id: R16_2, top: "W:R32_03", bottom: "W:R32_04"}
-    - {id: R16_3, top: "W:R32_05", bottom: "W:R32_06"}
-    - {id: R16_4, top: "W:R32_07", bottom: "W:R32_08"}
-    - {id: R16_5, top: "W:R32_09", bottom: "W:R32_10"}
-    - {id: R16_6, top: "W:R32_11", bottom: "W:R32_12"}
-    - {id: R16_7, top: "W:R32_13", bottom: "W:R32_14"}
-    - {id: R16_8, top: "W:R32_15", bottom: "W:R32_16"}
-  quarter_finals:
-    - {id: QF_1, top: "W:R16_1", bottom: "W:R16_2"}
-    - {id: QF_2, top: "W:R16_3", bottom: "W:R16_4"}
-    - {id: QF_3, top: "W:R16_5", bottom: "W:R16_6"}
-    - {id: QF_4, top: "W:R16_7", bottom: "W:R16_8"}
-  semi_finals:
-    - {id: SF_1, top: "W:QF_1", bottom: "W:QF_2"}
-    - {id: SF_2, top: "W:QF_3", bottom: "W:QF_4"}
-  final:
-    - {id: FINAL, top: "W:SF_1", bottom: "W:SF_2"}
+  round_of_32:                              # FIFA matches 73-88
+    - {id: M73, top: "2A", bottom: "2B"}
+    - {id: M74, top: "1E", bottom: "T1", eligible_groups: ["A", "B", "C", "D", "F"]}
+    - {id: M75, top: "1F", bottom: "2C"}
+    - {id: M76, top: "1C", bottom: "2F"}
+    - {id: M77, top: "1I", bottom: "T2", eligible_groups: ["C", "D", "F", "G", "H"]}
+    - {id: M78, top: "2E", bottom: "2I"}
+    - {id: M79, top: "1A", bottom: "T3", eligible_groups: ["C", "E", "F", "H", "I"]}
+    - {id: M80, top: "1L", bottom: "T4", eligible_groups: ["E", "H", "I", "J", "K"]}
+    - {id: M81, top: "1D", bottom: "T5", eligible_groups: ["B", "E", "F", "I", "J"]}
+    - {id: M82, top: "1G", bottom: "T6", eligible_groups: ["A", "E", "H", "I", "J"]}
+    - {id: M83, top: "2K", bottom: "2L"}
+    - {id: M84, top: "1H", bottom: "2J"}
+    - {id: M85, top: "1B", bottom: "T7", eligible_groups: ["E", "F", "G", "I", "J"]}
+    - {id: M86, top: "1J", bottom: "2H"}
+    - {id: M87, top: "1K", bottom: "T8", eligible_groups: ["D", "E", "I", "J", "L"]}
+    - {id: M88, top: "2D", bottom: "2G"}
+  round_of_16:                              # FIFA matches 89-96
+    - {id: M89, top: "W:M74", bottom: "W:M77"}
+    - {id: M90, top: "W:M73", bottom: "W:M75"}
+    - {id: M91, top: "W:M76", bottom: "W:M78"}
+    - {id: M92, top: "W:M79", bottom: "W:M80"}
+    - {id: M93, top: "W:M83", bottom: "W:M84"}
+    - {id: M94, top: "W:M81", bottom: "W:M82"}
+    - {id: M95, top: "W:M86", bottom: "W:M88"}
+    - {id: M96, top: "W:M85", bottom: "W:M87"}
+  quarter_finals:                           # FIFA matches 97-100
+    - {id: M97, top: "W:M89", bottom: "W:M90"}
+    - {id: M98, top: "W:M93", bottom: "W:M94"}
+    - {id: M99, top: "W:M91", bottom: "W:M92"}
+    - {id: M100, top: "W:M95", bottom: "W:M96"}
+  semi_finals:                              # FIFA matches 101-102
+    - {id: M101, top: "W:M97", bottom: "W:M98"}
+    - {id: M102, top: "W:M99", bottom: "W:M100"}
+  final:                                    # FIFA match 104 (M103 = 3rd-place, not modelled)
+    - {id: M104, top: "W:M101", bottom: "W:M102"}

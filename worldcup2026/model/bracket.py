@@ -6,13 +6,17 @@ callable; everything else here is deterministic FIFA rules.
 Group ranking order (FIFA 2026): points -> goal difference -> goals for ->
 (for sims) a stable strength tiebreak to avoid coin-flips. The eight best
 third-placed teams are ranked by the same group criteria, then assigned to the
-third-designated Round-of-32 slots avoiding same-group rematches.
+third-designated Round-of-32 slots honouring the official FIFA Annex C
+eligibility lists (each slot accepts a third only from a fixed set of groups).
 """
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Tuple
+import logging
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
+
+log = logging.getLogger("worldcup2026.bracket")
 
 # play(team_a, team_b, knockout) -> (winner, loser, goals_a, goals_b)
 PlayFn = Callable[[str, str, bool], Tuple[str, str, int, int]]
@@ -55,45 +59,70 @@ def select_best_thirds(third_stats: Dict[str, Tuple[int, int, int]],
     return teams[:n]
 
 
-def assign_thirds(third_slots: List[str], thirds_ranked: List[str],
-                  slot_groups: Dict[str, str], team_group: Dict[str, str]) -> Dict[str, str]:
-    """Map third tokens (T1..Tn) -> team, avoiding same-group matchups where possible.
+def _match_thirds(third_slots: List[str],
+                  candidates: Dict[str, List[str]]) -> Optional[Dict[str, str]]:
+    """Bijection slot -> team via most-constrained-slot-first DFS with backtracking.
 
-    ``third_slots`` are tokens in bracket order; ``slot_groups`` maps each token to
-    the group of the *winner* it will face (so we avoid pairing a third with its
-    own group's winner).
+    ``candidates[slot]`` lists the teams eligible for that slot in priority order
+    (best-ranked third first). Deterministic: ties on availability break by the
+    slot's index in ``third_slots``. Returns None if no perfect matching exists.
     """
-    assignment = dict(zip(third_slots, thirds_ranked))
-    tokens = list(third_slots)
-    for i, tok in enumerate(tokens):
-        team = assignment[tok]
-        if team_group.get(team) == slot_groups.get(tok):
-            # find a swap partner that resolves both clashes
-            for j in range(len(tokens)):
-                if j == i:
-                    continue
-                tok2 = tokens[j]
-                t2 = assignment[tok2]
-                if (team_group.get(t2) != slot_groups.get(tok)
-                        and team_group.get(team) != slot_groups.get(tok2)):
-                    assignment[tok], assignment[tok2] = t2, team
-                    break
+    slot_index = {s: i for i, s in enumerate(third_slots)}
+    used: set = set()
+    result: Dict[str, str] = {}
+
+    def solve(remaining: frozenset) -> bool:
+        if not remaining:
+            return True
+        # pick the slot with the fewest still-available candidates (MRV)
+        def avail(s: str) -> List[str]:
+            return [t for t in candidates[s] if t not in used]
+        slot = min(remaining, key=lambda s: (len(avail(s)), slot_index[s]))
+        for team in avail(slot):            # priority = third-rank order
+            used.add(team); result[slot] = team
+            if solve(remaining - {slot}):
+                return True
+            used.discard(team); del result[slot]
+        return False
+
+    return result if solve(frozenset(third_slots)) else None
+
+
+def assign_thirds(third_slots: List[str], thirds_ranked: List[str],
+                  slot_eligible: Dict[str, List[str]],
+                  team_group: Dict[str, str]) -> Dict[str, str]:
+    """Map third tokens (T1..Tn) -> team honouring official slot eligibility.
+
+    ``slot_eligible[token]`` is the list of group letters whose third-placed team
+    may occupy that slot (FIFA Annex C). The 8 qualifying thirds are matched to
+    the 8 slots so each third's group is eligible for its slot, preferring
+    higher-ranked thirds. Falls back to a naive zip (and warns) only if the
+    eligibility lists admit no perfect matching — which never happens with the
+    official table.
+    """
+    candidates = {s: [t for t in thirds_ranked
+                      if team_group.get(t) in slot_eligible.get(s, [])]
+                  for s in third_slots}
+    assignment = _match_thirds(third_slots, candidates)
+    if assignment is None:
+        log.warning("No eligible third-place assignment found; falling back to "
+                    "rank order (check tournament bracket eligible_groups).")
+        assignment = dict(zip(third_slots, thirds_ranked))
     return assignment
 
 
-def _winner_slot_groups(round_of_32: List[Dict[str, str]]) -> Tuple[List[str], Dict[str, str]]:
-    """Identify third tokens and the group letter of the winner they face."""
-    third_slots, slot_groups = [], {}
+def _third_slot_eligibility(round_of_32: List[Dict[str, str]]) -> Tuple[List[str], Dict[str, List[str]]]:
+    """Identify third tokens (T1..Tn) and each slot's eligible-group list."""
+    third_slots, slot_eligible = [], {}
     for m in round_of_32:
-        for pos, other in (("top", "bottom"), ("bottom", "top")):
+        for pos in ("top", "bottom"):
             tok = m[pos]
-            if tok.startswith("T"):
+            if isinstance(tok, str) and tok.startswith("T"):
                 third_slots.append(tok)
-                opp = m[other]
-                slot_groups[tok] = opp[1:] if opp[:1] in ("1", "2") else ""
+                slot_eligible[tok] = list(m.get("eligible_groups", []))
     # keep T-order stable (T1, T2, ...)
     third_slots = sorted(set(third_slots), key=lambda s: int(s[1:]))
-    return third_slots, slot_groups
+    return third_slots, slot_eligible
 
 
 def resolve_tournament(bracket_cfg: Dict[str, List[Dict[str, str]]],
@@ -123,5 +152,9 @@ def resolve_tournament(bracket_cfg: Dict[str, List[Dict[str, str]]],
 
 
 def third_slot_metadata(bracket_cfg: Dict[str, List[Dict[str, str]]]):
-    """Public helper: (third_slots, slot_groups) for the configured R32."""
-    return _winner_slot_groups(bracket_cfg["round_of_32"])
+    """Public helper: (third_slots, slot_eligible) for the configured R32.
+
+    ``slot_eligible[token]`` is the list of group letters whose third-placed team
+    may fill that slot (official FIFA Annex C, read from the YAML).
+    """
+    return _third_slot_eligibility(bracket_cfg["round_of_32"])

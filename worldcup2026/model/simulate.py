@@ -39,7 +39,7 @@ class Simulator:
         self.groups = groups_fn()
         self.bracket_cfg = bracket_cfg_fn()
         self.team_group = {t: g for g, ms in self.groups.items() for t in ms}
-        self.third_slots, self.slot_groups = bk.third_slot_metadata(self.bracket_cfg)
+        self.third_slots, self.slot_eligible = bk.third_slot_metadata(self.bracket_cfg)
         self.corr = float(corr)
         self.et_edge = float(et_edge)
         self.rng = np.random.default_rng(seed)
@@ -143,7 +143,7 @@ class Simulator:
             best_g = np.argsort(-tk)[:8]
             thirds_ranked = [third_team[s, g] for g in best_g]
             assignment = bk.assign_thirds(self.third_slots, thirds_ranked,
-                                          self.slot_groups, self.team_group)
+                                          self.slot_eligible, self.team_group)
             slot_to_team: Dict[str, str] = {}
             for gi, g in enumerate(glabels):
                 slot_to_team[f"1{g}"] = winners[s, gi]
@@ -241,7 +241,7 @@ class Simulator:
         best = third_pool[:8]
         thirds_ranked = [t for _, t, _ in best]
         assignment = bk.assign_thirds(self.third_slots, thirds_ranked,
-                                      self.slot_groups, self.team_group)
+                                      self.slot_eligible, self.team_group)
         slot_to_team.update(assignment)
 
         def play(a, b, _ko):

@@ -34,6 +34,12 @@ macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate`, then the same
 | 🧠 Train & Validate | `--train` `--backtest` | Fit RF goals model (TimeSeriesSplit CV) + backtest (RPS/log-loss/calibration) |
 | 🏆 Run Prediction | `--simulate` | Monte-Carlo the remaining tournament → champion & per-stage probabilities |
 
+After **Refresh Data**, the dashboard also shows a **📋 Group stage** section — all game results, full group
+standings, the third-place finishers table, and who qualifies to the Round of 32 — computed from the played
+results (`worldcup2026/standings.py`). Once a prediction has been run, the model's *projected-final*
+standings and qualifiers are shown side by side with the actual (provisional) ones. The knockout view then
+renders the full official bracket Round-of-32 → Final.
+
 ## Architecture
 
 ```
@@ -43,7 +49,7 @@ worldcup2026/
   etl/        sources.py ingest.py clean.py     # acquisition, orchestration, name normalization
   features/   elo.py engineering.py team_attrs.py
   model/      train.py validate.py simulate.py bracket.py
-  config.py persistence.py tournament.py
+  config.py persistence.py tournament.py standings.py   # standings.py: actual group-stage tables
 scripts/run_pipeline.py        # CLI
 app/dashboard.py               # Streamlit + Plotly
 tests/                         # pytest (bracket, features, simulation, cleaning, tournament)
@@ -55,8 +61,14 @@ form. Applied twice per fixture → (λ_home, λ_away). A bivariate-Poisson laye
 Monte-Carlo loop plays out groups (FIFA tiebreakers + 8 best thirds) and the knockout bracket, repeating
 ≥20k times for probabilities.
 
-**Live mode.** Drop played results into `worldcup2026/data/wc2026_results_manual.csv`
-(`date,home_team,away_team,home_score,away_score`); they are locked and only the remainder is simulated.
+**Live mode.** Played WC-2026 results come from three sources, lowest→highest priority: (1) the Kaggle
+(martj42) historical pull, (2) **FIFA's official public match API** (`api.fifa.com`, keyless, real-time —
+`sources.live_results_provider: fifa`), and (3) an optional manual override CSV
+`worldcup2026/data/wc2026_results_manual.csv` (`date,home_team,away_team,home_score,away_score`). The FIFA
+API is the authoritative live feed and surfaces matches the Kaggle community dataset hasn't ingested yet
+(martj42 can lag by a few days), so each **Refresh Data** locks the latest scores automatically; only the
+remaining fixtures are simulated. Each source degrades gracefully — if the FIFA API is unreachable (or you
+set `live_results_provider: none`) the pipeline falls back to the Kaggle feed.
 
 ## Offline / synthetic mode
 

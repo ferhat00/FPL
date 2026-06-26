@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import get_path, kaggle_available, load_config
-from ..tournament import all_teams, teams_table
+from ..tournament import all_teams, load_tournament, teams_table
 from .clean import normalize_results, normalize_team
 
 log = logging.getLogger("worldcup2026.etl")
@@ -236,28 +236,170 @@ def _worldbank_indicators() -> Optional[pd.DataFrame]:
 # ---------------------------------------------------------------------------
 # Live WC-2026 results so far
 # ---------------------------------------------------------------------------
-def fetch_live_results() -> pd.DataFrame:
-    """Actual WC-2026 group results played to date.
+_LIVE_COLS = ["date", "home_team", "away_team", "home_score", "away_score",
+              "tournament", "neutral"]
 
-    Primary path is a user-maintained CSV at data/wc2026_results_manual.csv
-    (columns: date,home_team,away_team,home_score,away_score). This is the
-    robust, source-agnostic way to feed real results in live-tournament mode.
-    Returns an empty canonical frame if none exist (pre-tournament behaviour).
+
+def _empty_live() -> pd.DataFrame:
+    return normalize_results(pd.DataFrame(columns=_LIVE_COLS))
+
+
+def _wc2026_from_history(history: pd.DataFrame) -> pd.DataFrame:
+    """Extract the played WC-2026 matches out of the freshly-pulled history.
+
+    Real results arrive in the historical feed (martj42 on Kaggle) labelled
+    ``FIFA World Cup``. We isolate the 2026 edition by keeping World Cup games
+    (not qualifiers) dated on/after the official opener and contested by two of
+    the 48 entrants — so each Refresh auto-locks the latest scores with no
+    manual step. The source ``tournament`` label is preserved, so concatenating
+    these rows back into the historical table is a no-op after de-duplication.
     """
+    start = pd.to_datetime(load_tournament()["meta"]["opening_match_date"])
+    wc = set(all_teams())
+    df = history.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    tour = df["tournament"].astype(str).str.lower()
+    mask = (
+        tour.str.contains("world cup", na=False)
+        & ~tour.str.contains("qualif", na=False)
+        & (df["date"] >= start)
+        & df["home_team"].isin(wc)
+        & df["away_team"].isin(wc)
+    )
+    return normalize_results(df.loc[mask])
+
+
+# Official FIFA public match API (no key required). Men's World Cup = comp "17".
+_FIFA_MATCHES_URL = "https://api.fifa.com/api/v3/calendar/matches"
+_FIFA_FINISHED = 0  # MatchStatus code for a completed (full-time) match
+
+
+def _fifa_team_name(side: dict) -> Optional[str]:
+    """Pull the team name out of a FIFA match ``Home``/``Away`` object."""
+    name = side.get("TeamName")
+    if isinstance(name, list) and name:
+        return (name[0] or {}).get("Description")
+    if isinstance(name, str):
+        return name
+    return side.get("ShortClubName") or None
+
+
+def fetch_live_results_fifa() -> pd.DataFrame:
+    """Played WC-2026 results from FIFA's official public match API (keyless).
+
+    Authoritative and updated in real time, so it surfaces matches the Kaggle
+    (martj42) historical feed has not yet ingested (which can lag by days). Only
+    full-time matches between two of the 48 entrants are kept. Returns an empty
+    canonical frame on any failure (offline / API change / disabled), so the
+    pipeline transparently degrades to the Kaggle-derived feed.
+    """
+    cfg = load_config()["sources"]
+    if (not cfg.get("fetch_live_results", True)
+            or cfg.get("live_results_provider", "fifa") != "fifa"):
+        return _empty_live()
+    comp = str(cfg.get("fifa_competition_id", "17"))
+    season = str(cfg.get("fifa_season_id", "285023"))
+    try:
+        import requests  # lazy import
+        url = (f"{_FIFA_MATCHES_URL}?idCompetition={comp}&idSeason={season}"
+               "&count=500&language=en")
+        r = requests.get(url, timeout=25,
+                         headers={"User-Agent": "wc2026/1.0", "Accept": "application/json"})
+        r.raise_for_status()
+        data = r.json().get("Results", []) or []
+    except Exception as exc:  # noqa: BLE001 - any failure -> fallback
+        log.warning("FIFA live results fetch failed (%s); using Kaggle-derived feed.", exc)
+        return _empty_live()
+
+    wc = set(all_teams())
+    rows = []
+    for m in data:
+        if m.get("MatchStatus") != _FIFA_FINISHED:
+            continue
+        home, away = m.get("Home") or {}, m.get("Away") or {}
+        hs, as_ = home.get("Score"), away.get("Score")
+        if hs is None or as_ is None:
+            continue
+        ht, at = _fifa_team_name(home), _fifa_team_name(away)
+        if not ht or not at:
+            continue
+        rows.append({"date": (m.get("Date") or "")[:10],
+                     "home_team": ht, "away_team": at,
+                     "home_score": hs, "away_score": as_,
+                     "tournament": "FIFA World Cup 2026", "neutral": True})
+    if not rows:
+        return _empty_live()
+    df = normalize_results(pd.DataFrame(rows))
+    df = df[df["home_team"].isin(wc) & df["away_team"].isin(wc)].reset_index(drop=True)
+    log.info("Fetched %d finished WC-2026 results from the FIFA API.", len(df))
+    return df
+
+
+def _dedupe_live(frames: List[pd.DataFrame]) -> pd.DataFrame:
+    """Concatenate live frames (low->high priority) and dedupe per fixture.
+
+    The fixture key is the unordered team pair (NOT the date): any two WC-2026
+    teams meet at most once, so this collapses the same match even when sources
+    disagree on the calendar date (UTC vs local) or swap home/away. ``keep="last"``
+    lets later (higher-priority) frames win — including their authoritative date.
+    """
+    if not frames:
+        return _empty_live()
+    out = pd.concat(frames, ignore_index=True).dropna(subset=["date", "home_team", "away_team"])
+    if out.empty:
+        return _empty_live()
+    pair = out.apply(lambda r: "|".join(sorted([r["home_team"], r["away_team"]])), axis=1)
+    out = (out.assign(_k=pair)
+              .drop_duplicates(subset="_k", keep="last")
+              .drop(columns="_k")
+              .sort_values("date")
+              .reset_index(drop=True))
+    return out
+
+
+def fetch_live_results(history: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    """Actual WC-2026 results played to date (for live-tournament mode).
+
+    Sources, lowest to highest priority (later wins on a per-fixture conflict):
+      1. ``history`` — the freshly-pulled Kaggle (martj42) historical results;
+         World Cup games on/after the 2026 opener between two entrants. Can lag.
+      2. FIFA's official public match API (``fetch_live_results_fifa``) — keyless,
+         real-time, authoritative; surfaces matches Kaggle hasn't ingested yet.
+      3. A user-maintained CSV at ``data/wc2026_results_manual.csv`` (columns:
+         date,home_team,away_team,home_score,away_score) — manual override.
+
+    Returns an empty canonical frame when none yields a match (pre-tournament).
+    """
+    if not load_config()["sources"].get("fetch_live_results", True):
+        return _empty_live()
+
+    frames: List[pd.DataFrame] = []
+
+    if history is not None and len(history):
+        derived = _wc2026_from_history(history)
+        if len(derived):
+            log.info("Derived %d live WC-2026 results from the historical pull.", len(derived))
+        frames.append(derived)
+
+    fifa = fetch_live_results_fifa()
+    if len(fifa):
+        frames.append(fifa)
+
     manual = Path(get_path("raw")).parent / "wc2026_results_manual.csv"
     if manual.exists():
         try:
-            df = pd.read_csv(manual)
-            df["tournament"] = "FIFA World Cup 2026"
-            df["neutral"] = True
-            out = normalize_results(df)
-            log.info("Loaded %d live WC-2026 results from %s.", len(out), manual.name)
-            return out
+            mdf = pd.read_csv(manual)
+            mdf["tournament"] = "FIFA World Cup 2026"
+            if "neutral" not in mdf.columns:
+                mdf["neutral"] = True
+            mframe = normalize_results(mdf)
+            log.info("Loaded %d manual WC-2026 results from %s (overrides derived).",
+                     len(mframe), manual.name)
+            frames.append(mframe)
         except Exception as exc:  # noqa: BLE001
             log.warning("Failed to read manual WC-2026 results (%s).", exc)
-    return normalize_results(pd.DataFrame(
-        columns=["date", "home_team", "away_team", "home_score", "away_score",
-                 "tournament", "neutral"]))
+
+    return _dedupe_live(frames)
 
 
 def _restrict_to_wc(df: pd.DataFrame, value_col: str) -> pd.DataFrame:

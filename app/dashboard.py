@@ -20,11 +20,13 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from worldcup2026 import persistence as pstore
+from worldcup2026 import standings as gs
 from worldcup2026.config import kaggle_available, load_config
 from worldcup2026.etl.ingest import run_etl
 from worldcup2026.model.simulate import run_simulation
 from worldcup2026.model.train import load_bundle, train_model
 from worldcup2026.model.validate import backtest
+from worldcup2026.tournament import groups as groups_fn
 
 st.set_page_config(page_title="World Cup 2026 Predictor", page_icon="🏆", layout="wide")
 CFG = load_config()
@@ -49,6 +51,125 @@ def _status_bar():
     if res is not None and (res["tournament"] == "Synthetic").any():
         st.info("⚠️ Running on **synthetic** history (no Kaggle key / offline). "
                 "Add Kaggle credentials to `config.yaml` and refresh for real data.", icon="ℹ️")
+
+
+def _style_standings(df):
+    """Highlight qualifiers: top-2 green, 3rd amber (by position index)."""
+    def _row(row):
+        if row.name <= 2:
+            return ["background-color: #14532d; color: white"] * len(row)
+        if row.name == 3:
+            return ["background-color: #78350f; color: white"] * len(row)
+        return [""] * len(row)
+    return df.style.apply(_row, axis=1)
+
+
+def _projected_group_table(eb, g):
+    """Projected final standings for one group from expected_bracket -> DataFrame."""
+    rows = [{"team": t, "ExpPts": pts} for t, pts in eb["group_standings"][g]]
+    df = pd.DataFrame(rows)
+    df.index = pd.RangeIndex(1, len(df) + 1, name="Pos")
+    return df
+
+
+def _group_stage_section():
+    """Dedicated group-stage view: results, standings, 3rd-place table, R32 qualifiers.
+
+    The *actual* side is computed from played results (needs only Refresh Data);
+    the *projected* side is shown alongside when a simulation is in session.
+    """
+    live = pstore.read_parquet("wc2026_live", "processed")
+    _, attrs = _processed()
+    if live is None or len(live) == 0 or attrs is None:
+        return  # nothing to show until data is refreshed
+
+    grps = groups_fn()
+    team_group = {t: g for g, ms in grps.items() for t in ms}
+    strength = attrs["elo"].to_dict() if "elo" in attrs.columns else {}
+
+    standings = gs.group_standings(live, grps, strength)
+    thirds = gs.third_place_ranking(standings, strength)
+    quals = gs.r32_qualifiers(standings, thirds)
+    results = gs.results_by_group(live, grps)
+    n_played = int(results["played"].sum()) if len(results) else 0
+    n_total = len(results)
+
+    eb = None
+    if "sim_out" in st.session_state:
+        eb = st.session_state["sim_out"].get("expected_bracket")
+
+    st.divider()
+    st.header("📋 Group stage")
+    if n_played >= n_total and n_total:
+        st.caption(f"Group stage complete — {n_total} games played. Final standings below.")
+    else:
+        st.caption(f"Played **{n_played} of {n_total}** group games — actual standings are "
+                   "**provisional** until the final matchday. Projected = model forecast of the "
+                   "remaining games.")
+    if eb is None:
+        st.info("Run **🏆 Run Prediction** (after training) to populate the *projected final* "
+                "columns beside the actual ones.", icon="ℹ️")
+
+    # ---- per-group: results + actual vs projected standings ----
+    for g in grps:
+        leaders = ", ".join(standings[g].loc[1:2, "team"].tolist())
+        with st.expander(f"Group {g} — {leaders} leading", expanded=False):
+            gr = results[results["group"] == g]
+            res_rows = []
+            for m in gr.itertuples():
+                score = (f"{int(m.home_score)}–{int(m.away_score)}" if m.played
+                         else "—")
+                when = pd.to_datetime(m.date).strftime("%b %d") if pd.notna(m.date) else ""
+                res_rows.append({"Match": f"{m.home} v {m.away}", "Score": score,
+                                 "Date": when, "": "✔" if m.played else "🗓"})
+            st.dataframe(pd.DataFrame(res_rows), hide_index=True, use_container_width=True)
+
+            ca, cp = st.columns(2)
+            ca.markdown("**Actual standings**")
+            ca.dataframe(_style_standings(standings[g]), use_container_width=True)
+            cp.markdown("**Projected final**")
+            if eb is not None:
+                cp.dataframe(_style_standings(_projected_group_table(eb, g)),
+                             use_container_width=True)
+            else:
+                cp.caption("— run a prediction —")
+
+    # ---- third-place finishers ----
+    st.subheader("🥉 Third-place finishers")
+    ta, tp = st.columns(2)
+    ta.markdown("**Actual** (best 8 qualify)")
+    show_thirds = thirds.copy()
+    show_thirds["qualified"] = show_thirds["qualified"].map({True: "✅", False: ""})
+    ta.dataframe(show_thirds.rename(columns={"qualified": "R32?"}),
+                 hide_index=True, use_container_width=True)
+    tp.markdown("**Projected** (best 8)")
+    if eb is not None:
+        tp.dataframe(pd.DataFrame({"rank": range(1, len(eb["best_thirds"]) + 1),
+                                   "team": eb["best_thirds"],
+                                   "group": [team_group.get(t) for t in eb["best_thirds"]]}),
+                     hide_index=True, use_container_width=True)
+    else:
+        tp.caption("— run a prediction —")
+
+    # ---- qualified for the Round of 32 ----
+    st.subheader("✅ Qualified for the Round of 32")
+    note = "final" if (n_played >= n_total and n_total) else "provisional"
+    qa, qp = st.columns(2)
+    qa.markdown(f"**Actual** ({note}) — {len(quals)} teams")
+    qa.dataframe(quals[["team", "group", "route"]].sort_values(["route", "group"]),
+                 hide_index=True, use_container_width=True, height=320)
+    qp.markdown("**Projected**")
+    if eb is not None:
+        proj_rows = []
+        for g, lst in eb["group_standings"].items():
+            proj_rows.append({"team": lst[0][0], "group": g, "route": "Group winner"})
+            proj_rows.append({"team": lst[1][0], "group": g, "route": "Runner-up"})
+        for t in eb["best_thirds"]:
+            proj_rows.append({"team": t, "group": team_group.get(t), "route": "3rd place"})
+        qp.dataframe(pd.DataFrame(proj_rows).sort_values(["route", "group"]),
+                     hide_index=True, use_container_width=True, height=320)
+    else:
+        qp.caption("— run a prediction —")
 
 
 # --------------------------------------------------------------------------- sidebar
@@ -89,6 +210,10 @@ if refresh_clicked:
                f"({summary['date_min']} → {summary['date_max']}), "
                f"{summary['n_live_wc2026']} WC-2026 results ingested.")
     _status_bar()
+
+
+# --------------------------------------------------------------------------- 1b. GROUP STAGE
+_group_stage_section()
 
 
 # --------------------------------------------------------------------------- 2. TRAIN
@@ -170,25 +295,29 @@ if "sim_out" in st.session_state:
     fig.update_xaxes(tickformat=".0%")
     st.plotly_chart(fig, use_container_width=True)
 
-    left, right = st.columns([3, 2])
     adv = out["advancement"].head(20).set_index("team")[["R32", "R16", "QF", "SF", "Final", "Champion"]]
     fig_hm = px.imshow(adv, text_auto=".0%", aspect="auto", color_continuous_scale="Blues",
                        title="Probability of reaching each stage (top 20)")
     fig_hm.update_layout(height=620, coloraxis_showscale=False)
-    left.plotly_chart(fig_hm, use_container_width=True)
+    st.plotly_chart(fig_hm, use_container_width=True)
 
-    right.markdown("#### Expected knockout path")
-    right.caption("Deterministic favourites (most-likely bracket).")
+    st.markdown("#### Expected knockout bracket")
+    st.caption("Deterministic favourites (most-likely path), Round of 32 → Final. "
+               "Projected winner in **bold**; hover a tie for its FIFA match number.")
     rounds = eb["knockout"]
+    order = ["round_of_32", "round_of_16", "quarter_finals", "semi_finals", "final"]
     label = {"round_of_32": "Round of 32", "round_of_16": "Round of 16",
              "quarter_finals": "Quarter-finals", "semi_finals": "Semi-finals", "final": "Final"}
-    for rname in ["quarter_finals", "semi_finals", "final"]:
-        right.markdown(f"**{label[rname]}**")
+    cols = st.columns(5)
+    for col, rname in zip(cols, order):
+        col.markdown(f"**{label[rname]}**")
         for mtch in rounds.get(rname, []):
-            mark_a = "✅" if mtch["winner"] == mtch["a"] else ""
-            mark_b = "✅" if mtch["winner"] == mtch["b"] else ""
-            right.write(f"{mark_a} {mtch['a']} — {mtch['b']} {mark_b}")
-    right.success(f"Expected champion: **{eb['champion']}**  (def. {eb['runner_up']})")
+            a_win = mtch["winner"] == mtch["a"]
+            a = f"**{mtch['a']}**" if a_win else mtch["a"]
+            b = mtch["b"] if a_win else f"**{mtch['b']}**"
+            col.markdown(f"{a}  \n{b}", help=mtch["id"])
+            col.markdown("---")
+    st.success(f"Expected champion: **{eb['champion']}**  (def. {eb['runner_up']})")
 
     st.subheader("Full probability table")
     show = summary.copy()
